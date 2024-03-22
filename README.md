@@ -1,10 +1,10 @@
 # fzf_interactive_cd
 Interactive 'cd' powered by fzf
 
-# Demo
+## Demo
 ![](https://github.com/Kyle0923/fzf_interactive_cd/blob/main/fzf_cd.gif)
 
-# Prerequisite
+## Prerequisite
 This script requires the following binaries:  
 - fzf: https://github.com/junegunn/fzf, I am using version 0.48.1  
 - fd: https://github.com/sharkdp/fd  
@@ -13,24 +13,24 @@ This script requires the following binaries:
 
 Special thanks to these open source projects that enables this tool
 
-# Installation
+## Installation
 Add the companion script `fzf_previewer` to path and add executable permission  
 Source the fzf_interactive_cd.bash script
 
-# Usage
-## `c` - A Supercharged `cd`
+## Usage
+### `c` - A Supercharged `cd`
 `c` is a wrapper of `cd`  
 When no parameter is provided, it goes into "Direct execuation mode" where you can to interactively travel through the directory tree and `cd` into the directory you choose  
 Auto-completion is also provided if you prefer to take a look at the directory before you hit the Enter  
 On top of that, `c` can also "cd to the file", that is `cd` into the directory that contains the file
 
-## Auto-completion mode
+### Auto-completion mode
 type `c \` and hit `tab`  
 the auto completion trigger can be customized by the `FZF_COMPLETION_TRIGGER` variable (fzf feature)  
-## Direct execution mode
+### Direct execution mode
 type `c` and hit `enter`  
 
-## Key bindings
+### Key bindings
 `Alt+Enter` select the path and exit, in auto-completion mode, the path is added to command line, in direct execution mode, cd into the selected directory  
 `Ctrl+W` pop the last level of directory  
 `Alt+A` recursively find all files under current directory, useful when you have a good idea of the file/directory you are after but can be noisy  
@@ -39,8 +39,10 @@ type `c` and hit `enter`
 `Alt + arrow keys` scroll up/down page-up/down in the preview window  
 `Ctrl+/` change preview window postion or turn it off  
 
-## FZF search syntax
+### FZF search syntax
 see [FZF manual](https://github.com/junegunn/fzf?tab=readme-ov-file#search-syntax)  
+
+***
 
 # rgf - An rg-fzf Integration
 A search tool powered by both rg and fzf  
