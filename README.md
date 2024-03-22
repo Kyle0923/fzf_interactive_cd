@@ -2,7 +2,7 @@
 Interactive 'cd' powered by fzf
 
 # Demo
-![](https://github.com/Kyle0923/fzf_interactive_cd/fzf_cd.gif)
+![](https://github.com/Kyle0923/fzf_interactive_cd/blob/main/fzf_cd.gif)
 
 # Prerequisite
 This script requires the following binaries:  
@@ -46,7 +46,7 @@ see [FZF manual](https://github.com/junegunn/fzf?tab=readme-ov-file#search-synta
 A search tool powered by both rg and fzf  
 You can toggle between rg and fzf  
 And you can also perform nested search - rg 'w{3}' => fzf 'google' => rg '[Cc]om' will match 'www.google.Com' and 'www.google.com'
-![](https://github.com/Kyle0923/fzf_interactive_cd/rgf.gif)
+![](https://github.com/Kyle0923/fzf_interactive_cd/blob/main/rgf.png)
 
 ## Prerequisites
 In addition to the prerequisites listed above for fzf-interactive-cd, it also requires [rg](https://github.com/BurntSushi/ripgrep)
