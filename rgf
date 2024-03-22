@@ -1,0 +1,194 @@
+#!/usr/bin/env bash
+
+# adapted from https://github.com/junegunn/fzf/blob/master/ADVANCED.md#using-fzf-as-interactive-ripgrep-launcher
+
+# interactive Ripgrep
+# on 'Enter' open the file in less
+# Switch between Ripgrep mode and fzf filtering mode (Ctrl+T)
+# Nested search with (Ctrl+F)
+
+# usage:
+# rgf [rg options] file search_words/regexes...
+
+# known issue
+# 1. appears to relate to nth=3.., when we search in fzf mode and then switch back to rg, if the regex is not found,
+#    the search window doesn't display correctly. it appears fzf attempt to search through the 'not found' message. changing query will restore
+# 2. ctrl-F no response, this can happen when the number of records is too large. Try to apply more fileters to reduce the searching pool
+# 3. in nested search mode, rg will try to match filename, no solution since rg doesn't have option similar to fzf's nth option, https://github.com/BurntSushi/ripgrep/discussions/2756
+
+
+show_help() {
+    cat << EOF
+Interactive Ripgrep / FZF
+
+usage:
+rgf [options] file patterns...  # both file and pattern are optional
+rgf [options] patterns...       # if the first positional parameter is not a file, it will be treated as part of the pattern
+CMD | rgf [options]             # can also use from pipe
+
+options:
+    -h|--help       display this help message
+
+    --header [n]    freeze the first n line as header, n is default to 1 when not provided, e.g., ps -ef | rgf --header
+                    a convenient shothand for fzf's --header-lines option
+
+    -s|--silent     useful when you want to pipe the search result to other command,
+                    by default, rgf prints out the searching pattern or peeking file path to provide a trace
+
+Other options are passed to the underlying rg and fzf
+!! IMPORTANT: for key-value options, use opt=value or the script may fail
+Note that fzf performs search on top of rg's result, thus --glob / --type will affect the searching pool for both fzf and rg
+but some other options such as rg's "--fixed-strings" will have no effect on fzf. Generally, fzf's options will not affect rg
+    -z-*| -z--*      fzf options, e.g., rgf -z+i => fzf +i # fzf case sensitive mode, see man fzf
+    -*|--*           rg options, e.g., rgf --glob='*.c' # glob will be parsed by rg, see man rg
+
+
+key-bindings:
+    ctrl+t      toggle between rg and fzf
+    ctrl+f      search in current mattching records, could fail if the number of records is too large
+    ctrl+/      change preview window position or close it
+    enter       use 'less' to open the current record
+    alt-enter   print the selected records to CLI
+
+EOF
+    exit 0
+}
+
+SILENT=''
+FZF_OPT=""
+RG_PREFIX="rg --line-number --no-heading --color=always --smart-case"
+NOT_FOUND_PROMPT="echo '::[[ regex:/{q}/ not found ]]::'" # nth=3.. will fail without the first 2 colons, the last two just for symmetric
+PRETTY_BAT='bat --color=always --terminal-width $(tput cols) --paging=always'
+PIPE_BAT_OPT=''
+PREVIEW_HEADER_LINE=',~3'
+PATTERN_SETUP="PATTERN=\$([ -z {q} ] && echo '' || echo \"-p \$(echo '{q}' | awk '{print \$1}')\")"
+PROMPT_SETUP="PROMPT=\$([[ \$FZF_PROMPT =~ 'rg>' ]] && echo 'rg:' || echo 'fzf:') "
+PREFIX_SETUP="$PROMPT_SETUP ; new_prefix=\$([ -z \"{q}\" ] && echo '' || echo \"[{q}]\") ; echo \$PROMPT \"{q}\" "
+TRUNCATE_LINE="awk '{ if (length(\$0) > 201) print substr(\$0, 1, 201) \" [...]\"; else print \$0; }'"
+PREVIEW_FILE='{1}'
+LINE_NUM='{2}'
+N_TH='3..'
+HEADER_OPT=''
+
+# parse options
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -h|--help)
+            show_help
+            exit 0
+            ;;
+        -s|--silent)
+            SILENT_OPT='-s'
+            SILENT='>/dev/null'
+            PREFIX_SETUP="$PREFIX_SETUP $SILENT"
+            shift
+            ;;
+        --header)
+            shift
+            if [[ $2 =~ ^[0-9]+$ ]]; then
+                ln=$2
+                shift
+            else
+                ln=1
+            fi
+            HEADER_OPT=",~$((ln+1))"
+            FZF_OPT="$FZF_OPT --header-lines $ln"
+            ;;
+        --PASS-THROUGH)
+            PASS_THROUGH_MODE=$2
+            shift 2
+            ;;
+        --PREFIX)
+            prefix="$2 && "
+            shift 2
+            ;;
+        -z-*|-z+*)
+            FZF_OPT="$FZF_OPT ${1:2}" # remove -z part
+            shift
+            ;;
+        -*)
+            RG_PREFIX="$RG_PREFIX $1"
+            shift
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
+set -- "$@"
+
+PASS_THROUGH_MODE="${PASS_THROUGH_MODE:='0'}" # provide a default value
+
+main() {
+
+    [ -f "$1" ] && file_path="'$1'" && shift
+
+    rm -f /tmp/rg-fzf-{r,f}
+    INITIAL_QUERY="${*:-}"
+    : | fzf --ansi --query "$INITIAL_QUERY" \
+        --layout=reverse-list \
+        --exact --no-sort \
+        --track \
+        --pointer='=>' \
+        --marker='# ' \
+        --multi \
+        --nth=$N_TH \
+        --bind "home:first" \
+        --bind "end:last" \
+        --bind 'ctrl-/:change-preview-window(right|up|hidden|)' \
+        --bind "start:reload($RG_PREFIX {q} $file_path || $NOT_FOUND_PROMPT)+unbind(change)" \
+        --bind "change:reload:sleep 0.1; $RG_PREFIX {q} $file_path || $NOT_FOUND_PROMPT" \
+        --bind "ctrl-t:transform:[[ ! \$FZF_PROMPT =~ 'rg>' ]] &&
+                echo \"rebind(change)+disable-search+reload($RG_PREFIX {q} $file_path || $NOT_FOUND_PROMPT)+change-prompt(${prefix}rg> )\" ||
+                echo \"unbind(change)+reload($RG_PREFIX '' $file_path )+change-prompt(${prefix}fzf> )+enable-search\" " \
+        --bind "ctrl-f:select-all+execute($PREFIX_SETUP ; printf '%s\n' {+} | rgf --PREFIX \"${prefix}\$new_prefix\" --PASS-THROUGH $PASS_THROUGH_MODE $SILENT_OPT )+clear-selection" \
+        --color "hl:-1:underline,hl+:-1:underline:reverse" \
+        --prompt "${prefix}fzf> " \
+        --delimiter : \
+        --header 'CTRL-T: toggle rg/fzf, CTRL-F: nested search' \
+        --preview "bat $PIPE_BAT_OPT --terminal-width \$FZF_PREVIEW_COLUMNS --color=always $PREVIEW_FILE --highlight-line $LINE_NUM 2>/dev/null || fzf_previewer {}" \
+        --preview-window "up,60%,border-bottom,wrap,+$LINE_NUM+3/3$PREVIEW_HEADER_LINE" \
+        --bind "enter:execute( [[ {} == \"\$($NOT_FOUND_PROMPT)\" ]] && exit 0 ; $PATTERN_SETUP ; \
+                    $PRETTY_BAT $PREVIEW_FILE --highlight-line $LINE_NUM --pager \"less -R +$LINE_NUM \$PATTERN\" 2>/dev/null ; echo peek: {} $SILENT | $TRUNCATE_LINE )" \
+        --bind "alt-enter:become( [[ $PASS_THROUGH_MODE == '0' ]] && printf '%s\n' {+1} || printf '%s\n' {+2..} )" \
+        $FZF_OPT \
+
+}
+
+if ! [ -p /dev/stdin ]; then
+
+    # Run from cli
+    [ -f "$1" ] && RG_PREFIX="$RG_PREFIX --with-filename"
+    main "$@"
+
+else
+
+    # Run from pipeline
+    TEMP_FILE="/tmp/rg-fzf-pipe-$$"
+    rm -f $TEMP_FILE
+    cat > $TEMP_FILE
+
+    if [[ "$PASS_THROUGH_MODE" == '0' ]]; then
+        # run in nested search mode
+        RG_PREFIX="$RG_PREFIX --no-filename --no-heading --no-line-number"
+    else
+        if [[ "$PASS_THROUGH_MODE" =~ "/tmp/rg-fzf-pipe-" ]]; then
+            # nested search mode when top level is pipe input
+            RG_PREFIX="$RG_PREFIX --no-filename --no-heading --no-line-number"
+        else
+            # top level entry with input from pipe
+            PASS_THROUGH_MODE="$TEMP_FILE"
+        fi
+        # common when top level is pipe
+        PIPE_BAT_OPT="$PIPE_BAT_OPT --style=grid,numbers"
+        PREVIEW_HEADER_LINE="$HEADER_OPT"
+        PREVIEW_FILE="$PASS_THROUGH_MODE"
+        LINE_NUM='{1}'
+        N_TH='2..'
+    fi
+
+    main $TEMP_FILE "$@"
+    rm -f $TEMP_FILE
+
+fi
+
