@@ -26,9 +26,9 @@ On top of that, `c` can also "cd to the file", that is `cd` into the directory t
 
 ## Auto-completion mode
 type `c \` and hit `tab`  
-the auto completion trigger can be customized by the `FZF_COMPLETION_TRIGGER` variable (fzf feature)
+the auto completion trigger can be customized by the `FZF_COMPLETION_TRIGGER` variable (fzf feature)  
 ## Direct execution mode
-type `c` and hit `enter`
+type `c` and hit `enter`  
 
 ## Key bindings
 `Alt+Enter` select the path and exit, in auto-completion mode, the path is added to command line, in direct execution mode, cd into the selected directory  
@@ -40,20 +40,23 @@ type `c` and hit `enter`
 `Ctrl+/` change preview window postion or turn it off  
 
 ## FZF search syntax
-see [FZF manual](https://github.com/junegunn/fzf?tab=readme-ov-file#search-syntax)
+see [FZF manual](https://github.com/junegunn/fzf?tab=readme-ov-file#search-syntax)  
 
 # rgf - An rg-fzf Integration
 A search tool powered by both rg and fzf  
 You can toggle between rg and fzf  
-And you can also perform nested search - rg 'w{3}' => fzf 'google' => rg '[Cc]om' will match 'www.google.Com' and 'www.google.com'
-![](https://github.com/Kyle0923/fzf_interactive_cd/blob/main/rgf.png)
+And you can also perform nested search - rg 'w{3}' => fzf 'google' => rg '[Cc]om' will match 'www.google.Com' and 'www.google.com'  
+![](https://github.com/Kyle0923/fzf_interactive_cd/blob/main/rgf.png)  
 
 ## Prerequisites
-In addition to the prerequisites listed above for fzf-interactive-cd, it also requires [rg](https://github.com/BurntSushi/ripgrep)
+In addition to the prerequisites listed above for fzf-interactive-cd, it also requires [rg](https://github.com/BurntSushi/ripgrep)  
 
 ## Usage
 `rgf` similar to `rg | fzf`, search through all files  
 `rgf [filename]` search in a file, similar to `less`  
 `CMD | rgf` pipe the output of CMD to `rgf`  
 
-Key bindings and options are documented in `rgf --help`
+Key bindings and options are documented in `rgf --help`  
+
+# Author
+Zonghao Huang <kyle0923@qq.com>
