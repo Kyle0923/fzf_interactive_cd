@@ -7,12 +7,21 @@ function c() {
         [[ -n $CD_PATH ]] && c $CD_PATH
     elif [ $1 == '-' ] ; then
         builtin cd -
+    elif [[ $1 == '..' ]] && [[ $# -gt 1 ]] ; then
+        # support '.. .. ..' and '.. 3'
+        local prefix='.' ; shift
+        [[ $1 == '..' ]] && c ..$(printf "/%s" "$@") && return
+        [[ $1 =~ ^[0-9]+$ ]] && for counter in $(seq 1 $1); do prefix="$prefix/.."; done && c $prefix
+        return
     elif [ -d $1 ] ; then
+        # argument is a directory
         builtin cd "$1"
     else
+        # argument is not a directory
         builtin cd "$(dirname $1)"
     fi
 }
+alias ..='c ..'
 
 
 # fzf customization
@@ -35,16 +44,17 @@ _fzf_complete_c() {
     --bind='ctrl-/:change-preview-window(down,50%,border-top|hidden|)' \
     --ansi --sort \
     --border-label-pos=2 \
+    --bind 'change:first' \
     --border-label "`pwd`" \
     --header 'Alt-Enter: accept path; CTRL-W: go up; Alt-A: show all files' \
     --color hl:underline,hl+:underline \
     --preview "echo \$FZF_PROMPT{} | $TRIM_LS_SYMBOL | xargs fzf_previewer" \
     --bind "enter:transform:$ENTER_DIR" \
     --bind "tab:transform:$ENTER_DIR" \
-    --bind "left:transform:[[ -z '{q}' && \$(echo \$FZF_PROMPT{}) != '/' ]] &&
+    --bind "left:transform:[[ -z {q} && \$(echo \$FZF_PROMPT{}) != '/' ]] &&
             echo \"change-prompt(\$(dirname \$FZF_PROMPT | sed -E -e 's+^\/\$++')/)+reload(ls -a -F \$(dirname \$FZF_PROMPT) | tail -n +3)+clear-query\" ||
             echo backward-char" \
-    --bind "right:transform:[[ -z '{q}' && -d \$(echo \$FZF_PROMPT{}) ]] &&
+    --bind "right:transform:[[ -z {q} && -d \$(echo \$FZF_PROMPT{}) ]] &&
             echo \"change-prompt(\$(echo \$FZF_PROMPT{}))+reload(ls -a -F \$FZF_PROMPT{} | tail -n +3)+clear-query\" ||
             echo forward-char" \
     --bind "ctrl-w:transform:[[ \$(echo \$FZF_PROMPT{}) != '/' ]] &&
@@ -71,16 +81,17 @@ fzf_interactive_cd() {
     --bind='ctrl-/:change-preview-window(down,50%,border-top|hidden|)' \
     --ansi --sort \
     --border-label-pos=2 \
+    --bind 'change:first' \
     --border-label "`pwd`" \
     --header 'Alt-Enter: accept path; CTRL-W: go up; Alt-A: show all files' \
     --color hl:underline,hl+:underline \
     --preview "echo \$FZF_PROMPT{} | $TRIM_LS_SYMBOL | xargs fzf_previewer" \
     --bind "enter:transform:$ENTER_DIR" \
     --bind "tab:transform:$ENTER_DIR" \
-    --bind "left:transform:[[ -z '{q}' && \$(echo \$FZF_PROMPT{}) != '/' ]] &&
+    --bind "left:transform:[[ -z {q} && \$(echo \$FZF_PROMPT{}) != '/' ]] &&
             echo \"change-prompt(\$(dirname \$FZF_PROMPT | sed -E -e 's+^\/\$++')/)+reload(ls -a -F \$(dirname \$FZF_PROMPT) | tail -n +3)+clear-query\" ||
             echo backward-char" \
-    --bind "right:transform:[[ -z '{q}' && -d \$(echo \$FZF_PROMPT{}) ]] &&
+    --bind "right:transform:[[ -z {q} && -d \$(echo \$FZF_PROMPT{}) ]] &&
             echo \"change-prompt(\$(echo \$FZF_PROMPT{}))+reload(ls -a -F \$FZF_PROMPT{} | tail -n +3)+clear-query\" ||
             echo forward-char" \
     --bind "ctrl-w:transform:[[ \$(echo \$FZF_PROMPT{}) != '/' ]] &&
@@ -91,4 +102,3 @@ fzf_interactive_cd() {
     --bind="alt-left:preview-page-up,alt-right:preview-page-down,alt-up:preview-up,alt-down:preview-down" \
 
 }
-
