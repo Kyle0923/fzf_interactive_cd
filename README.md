@@ -36,7 +36,9 @@ type `c` and hit `enter`
 `Alt+A` recursively find all files under current directory, useful when you have a good idea of the file/directory you are after but can be noisy  
 `Enter` if the selection is a directory, enter the directory, if it is a file, select the file and exit  
 `left` / `right` when the current search word is empty, `left` and `right` can be use to go up or down in the directory tree  
-`Alt + arrow keys` scroll up/down page-up/down in the preview window  
+`Alt+Left` / `Alt+Right` go to the beginning or end of the query line  
+`Ctrl+D` clear query line
+`Alt+up / Alt+Down` scroll up/down the preview window  
 `Ctrl+/` change preview window postion or turn it off  
 
 ### FZF search syntax
